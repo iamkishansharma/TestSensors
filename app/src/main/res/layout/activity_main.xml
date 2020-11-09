@@ -23,6 +23,6 @@
         android:textColor="@android:color/holo_orange_dark"
         android:layout_centerHorizontal="true"
         android:textSize="20sp"
-        android:text="Names of Sensor"/>
+        android:text="@string/names_of_sensor"/>
 
 </RelativeLayout>

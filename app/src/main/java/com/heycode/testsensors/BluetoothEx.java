@@ -10,6 +10,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -17,6 +18,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.Set;
 
 public class BluetoothEx extends AppCompatActivity {
@@ -27,7 +29,8 @@ public class BluetoothEx extends AppCompatActivity {
 
     BluetoothAdapter mBluetoothAdapter;
     Set<BluetoothDevice> mBluetoothDevices;
-    ArrayAdapter<String> mStringArrayAdapter;
+    ArrayList<String> stringDeviceList = new ArrayList<>();
+    ArrayAdapter<String> adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,8 +72,6 @@ public class BluetoothEx extends AppCompatActivity {
                     showPairedDevices();
                 }
             });
-            mStringArrayAdapter = new ArrayAdapter<>(BluetoothEx.this, android.R.layout.simple_list_item_1);
-            mListView.setAdapter(mStringArrayAdapter);
 
             find.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -119,9 +120,11 @@ public class BluetoothEx extends AppCompatActivity {
     //////////////Bluetooth SHOWING PAIRED DEVICES
     public void showPairedDevices(){
         mBluetoothDevices = mBluetoothAdapter.getBondedDevices();
+        stringDeviceList.clear();
         for(BluetoothDevice bd: mBluetoothDevices){
-            mStringArrayAdapter.add(bd.getName()+"\n"+bd.getAddress());
+            stringDeviceList.add(bd.getName()+"\n"+bd.getAddress());
         }
+        mListView.setAdapter(new ArrayAdapter<>(BluetoothEx.this, android.R.layout.simple_list_item_1,stringDeviceList));
         Toast.makeText(this, "Showing Paired Devices..", Toast.LENGTH_SHORT).show();
     }
 
@@ -133,25 +136,33 @@ public class BluetoothEx extends AppCompatActivity {
             if(BluetoothDevice.ACTION_FOUND.equals(action)){
                 BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
                 if(device!=null){
-                    mStringArrayAdapter.add(device.getName()+"\n"+device.getAddress());
-                    mStringArrayAdapter.notifyDataSetChanged();
-
+                    stringDeviceList.add(device.getName()+"\n"+device.getAddress());
+                    mListView.setAdapter(new ArrayAdapter<>(BluetoothEx.this, android.R.layout.simple_list_item_1,stringDeviceList));
                     Toast.makeText(context, "Device is showing", Toast.LENGTH_SHORT).show();
-                }else {
-                    Toast.makeText(context, "SoRRRRRRYYYYYYYY", Toast.LENGTH_SHORT).show();
                 }
             }
+            if(BluetoothAdapter.ACTION_DISCOVERY_STARTED.equals(action)){
+                Toast.makeText(context, "Started Searching....", Toast.LENGTH_SHORT).show();
+            }else if(BluetoothAdapter.ACTION_DISCOVERY_FINISHED.equals(action)) {
+                Toast.makeText(context, "FINISHED !!!", Toast.LENGTH_SHORT).show();
+                unregisterReceiver(mBroadcastReceiver);
+            }
+
         }
     };
+
+
     public void findDevices(){
         if(mBluetoothAdapter.isDiscovering()){
             mBluetoothAdapter.cancelDiscovery();
         }else {
-            mStringArrayAdapter.clear();
+            stringDeviceList.clear();
+
             mBluetoothAdapter.startDiscovery();
             IntentFilter filter = new IntentFilter();
-            filter.addAction(BluetoothDevice.ACTION_FOUND);
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED);
+            filter.addAction(BluetoothDevice.ACTION_FOUND);
+            filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
             filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED);
             registerReceiver(mBroadcastReceiver, filter);
             Toast.makeText(this, "Found new devices..", Toast.LENGTH_SHORT).show();
@@ -160,7 +171,7 @@ public class BluetoothEx extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
         unregisterReceiver(mBroadcastReceiver);
+        super.onDestroy();
     }
 }
